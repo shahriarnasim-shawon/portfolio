@@ -980,6 +980,18 @@ RESPONSIVE
     .timeline::before{ left:14px; }
     .timeline-item{ padding-left:55px; }
     .timeline-dot{ left:0; }
+    .nav-links.show {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 85px;
+    left: 0;
+    width: 100%;
+    background: var(--surface);
+    padding: 25px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
 }
 @media(max-width:500px){
     section{ padding:80px 0; }
