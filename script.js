@@ -239,23 +239,49 @@ counters.forEach(counter=>{
     VISITOR COUNTER (GLOBAL)
 ==================================================*/
 async function updateGlobalVisitorCount() {
+    const formatCount = (num) => String(num).padStart(6, "0");
+
     try {
-        // We use a free, public API. "shawon-portfolio-2026" acts as your unique database name.
-        const response = await fetch('https://api.counterapi.dev/v1/shawon-portfolio-2026/visits/up');
-        const data = await response.json();
+        // Only increment once per browser session (prevents F5 spam during development)
+        const hasVisited = sessionStorage.getItem("shawon_visited_session");
+        const endpoint = hasVisited
+            ? "https://api.counterapi.dev/v1/shawon-portfolio-2026/visits/"
+            : "https://api.counterapi.dev/v1/shawon-portfolio-2026/visits/up";
+
+        const response = await fetch(endpoint);
         
-        // Update the HTML with the real global count
-        if (visitorCount) {
-            visitorCount.textContent = data.count;
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
         }
-        if (footerVisitorCount) {
-            footerVisitorCount.textContent = data.count;
+
+        const data = await response.json();
+
+        if (typeof data.count !== "number") {
+            throw new Error("Invalid count data received from API");
         }
+
+        // Mark session as visited and save latest known count locally
+        sessionStorage.setItem("shawon_visited_session", "true");
+        localStorage.setItem("shawon_last_known_count", data.count);
+
+        const formatted = formatCount(data.count);
+        if (visitorCount) visitorCount.textContent = formatted;
+        if (footerVisitorCount) footerVisitorCount.textContent = formatted;
+
     } catch (error) {
-        console.error("Counter API failed", error);
-        // Fallback just in case the API is ever down
-        if (visitorCount) visitorCount.textContent = "1000+";
-        if (footerVisitorCount) footerVisitorCount.textContent = "1000+";
+        console.warn("Global Counter API blocked or offline. Using local fallback:", error.message);
+
+        // Fallback: Use localStorage so it works offline, on file://, or with AdBlockers
+        let localCount = parseInt(localStorage.getItem("shawon_last_known_count") || "1", 10);
+        if (!sessionStorage.getItem("shawon_visited_session")) {
+            localCount += 1;
+            localStorage.setItem("shawon_last_known_count", localCount);
+            sessionStorage.setItem("shawon_visited_session", "true");
+        }
+
+        const formattedFallback = formatCount(localCount);
+        if (visitorCount) visitorCount.textContent = formattedFallback;
+        if (footerVisitorCount) footerVisitorCount.textContent = formattedFallback;
     }
 }
 
